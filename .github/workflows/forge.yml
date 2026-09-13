@@ -121,7 +121,7 @@ jobs:
           name: forge-${{ matrix.target }}
           path: wheelhouse/*.whl
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
 
   publish:
     name: Validate, attest, and publish
@@ -166,12 +166,35 @@ jobs:
           VERSION: ${{ needs.plan.outputs.resolved_version }}
         shell: bash
         run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release edit "$TAG" --title "$PACKAGE $VERSION · Rimera Forge" --notes-file publication/release-notes.md
-          else
-            gh release create "$TAG" --title "$PACKAGE $VERSION · Rimera Forge" --notes-file publication/release-notes.md
-          fi
-          gh release upload "$TAG" publication/wheels/*.whl publication/release-manifest.json --clobber
+          set -u
+
+          publish_release() {
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              gh release edit "$TAG" --title "$PACKAGE $VERSION · Rimera Forge" --notes-file publication/release-notes.md && \
+              gh release upload "$TAG" publication/wheels/*.whl publication/release-manifest.json --clobber
+            else
+              gh release create "$TAG" --target "$GITHUB_SHA" --title "$PACKAGE $VERSION · Rimera Forge" --notes-file publication/release-notes.md && \
+              gh release upload "$TAG" publication/wheels/*.whl publication/release-manifest.json --clobber
+            fi
+          }
+
+          for attempt in 1 2 3 4 5 6 7 8; do
+            echo "Release publish attempt $attempt/8"
+            if publish_release; then
+              echo "Release published successfully"
+              exit 0
+            fi
+
+            if [[ "$attempt" -lt 8 ]]; then
+              delay=$((attempt * 10))
+              echo "GitHub Releases API failed; retrying in ${delay}s"
+              sleep "$delay"
+            fi
+          done
+
+          echo "GitHub Releases API remained unavailable after 8 attempts" >&2
+          echo "Built wheels are retained as workflow artifacts for 7 days for recovery." >&2
+          exit 1
       - name: Commit small registry record
         shell: bash
         run: |
@@ -182,5 +205,15 @@ jobs:
             echo "Registry already up to date"
           else
             git commit -m "registry: ${{ needs.plan.outputs.normalized_name }} ${{ needs.plan.outputs.resolved_version }}"
-            git push
+            for attempt in 1 2 3 4 5; do
+              if git push; then
+                exit 0
+              fi
+              if [[ "$attempt" -lt 5 ]]; then
+                git pull --rebase origin main || true
+                sleep $((attempt * 5))
+              fi
+            done
+            echo "Failed to push registry record after 5 attempts" >&2
+            exit 1
           fi
