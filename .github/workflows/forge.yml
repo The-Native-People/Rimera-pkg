@@ -27,9 +27,11 @@ on:
           - linux-arm64
           - macos-arm64
           - windows-x86_64
+  repository_dispatch:
+    types: [forge-wheel]
 
 concurrency:
-  group: forge-${{ inputs.package }}-${{ inputs.version || 'latest' }}-${{ inputs.python }}
+  group: forge-${{ github.event_name == 'repository_dispatch' && github.event.client_payload.package || inputs.package }}-${{ github.event_name == 'repository_dispatch' && (github.event.client_payload.version || 'latest') || (inputs.version || 'latest') }}-${{ github.event_name == 'repository_dispatch' && (github.event.client_payload.python || '3.13') || inputs.python }}
   cancel-in-progress: false
 
 permissions:
@@ -58,10 +60,10 @@ jobs:
         id: plan
         shell: bash
         env:
-          INPUT_PACKAGE: ${{ inputs.package }}
-          INPUT_VERSION: ${{ inputs.version }}
-          INPUT_PYTHON: ${{ inputs.python }}
-          INPUT_TARGET: ${{ inputs.target }}
+          INPUT_PACKAGE: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.package || inputs.package }}
+          INPUT_VERSION: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.version || inputs.version }}
+          INPUT_PYTHON: ${{ github.event_name == 'repository_dispatch' && (github.event.client_payload.python || '3.13') || inputs.python }}
+          INPUT_TARGET: ${{ github.event_name == 'repository_dispatch' && (github.event.client_payload.target || 'all') || inputs.target }}
         run: |
           args=("$INPUT_PACKAGE" --python "$INPUT_PYTHON" --target "$INPUT_TARGET" --output .rimera/plan.json --github-output "$GITHUB_OUTPUT")
           if [[ -n "$INPUT_VERSION" ]]; then
