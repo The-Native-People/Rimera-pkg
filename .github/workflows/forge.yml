@@ -217,3 +217,16 @@ jobs:
             echo "Failed to push registry record after 5 attempts" >&2
             exit 1
           fi
+      - name: Refresh public Simple index
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if gh api --method POST "repos/$GITHUB_REPOSITORY/dispatches" -f event_type=refresh-pages; then
+              echo "Simple index refresh queued"
+              exit 0
+            fi
+            sleep $((attempt * 5))
+          done
+          echo "::warning::Could not trigger immediate Pages refresh; hourly refresh remains enabled."

@@ -10,6 +10,8 @@ on:
   schedule:
     - cron: "17 * * * *"
   workflow_dispatch:
+  repository_dispatch:
+    types: [refresh-pages]
 
 permissions:
   contents: read
