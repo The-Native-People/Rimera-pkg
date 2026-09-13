@@ -29,6 +29,18 @@
         "cp314-cp314-macosx_11_0_arm64"
       ],
       "url": "https://github.com/The-Native-People/Rimera-pkg/releases/download/rimera-markupsafe-a15573d6b2cf/markupsafe-2.0.1-cp314-cp314-macosx_11_0_arm64.whl"
+    },
+    {
+      "build_tag": null,
+      "filename": "markupsafe-2.0.1-cp314-cp314-win_amd64.whl",
+      "origin": "rimera-forge",
+      "requires_python": ">=3.6",
+      "sha256": "c56571aefb82c938d500ca373947bed568eb2a5d6f04195f0f5c9b833ce0d75a",
+      "size": 16872,
+      "tags": [
+        "cp314-cp314-win_amd64"
+      ],
+      "url": "https://github.com/The-Native-People/Rimera-pkg/releases/download/rimera-markupsafe-a15573d6b2cf/markupsafe-2.0.1-cp314-cp314-win_amd64.whl"
     }
   ]
 }
