@@ -1,10 +1,10 @@
 name: Publish Simple index
+run-name: Simple index · ${{ github.event_name }}
 
 on:
   push:
     branches: [main]
     paths:
-      - "registry/**"
       - "src/rimera_forge/index.py"
       - ".github/workflows/pages.yml"
   schedule:
@@ -45,8 +45,28 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deploy_3.outputs.page_url || steps.deploy_2.outputs.page_url || steps.deploy_1.outputs.page_url }}
     steps:
-      - name: Deploy
-        id: deployment
+      - name: Deploy · attempt 1
+        id: deploy_1
+        continue-on-error: true
+        uses: actions/deploy-pages@v5
+
+      - name: Wait before retry 2
+        if: ${{ steps.deploy_1.outcome == 'failure' }}
+        run: sleep 15
+
+      - name: Deploy · attempt 2
+        id: deploy_2
+        if: ${{ steps.deploy_1.outcome == 'failure' }}
+        continue-on-error: true
+        uses: actions/deploy-pages@v5
+
+      - name: Wait before retry 3
+        if: ${{ steps.deploy_1.outcome == 'failure' && steps.deploy_2.outcome == 'failure' }}
+        run: sleep 30
+
+      - name: Deploy · attempt 3
+        id: deploy_3
+        if: ${{ steps.deploy_1.outcome == 'failure' && steps.deploy_2.outcome == 'failure' }}
         uses: actions/deploy-pages@v5
