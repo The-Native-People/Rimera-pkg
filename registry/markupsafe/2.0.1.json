@@ -32,6 +32,32 @@
     },
     {
       "build_tag": null,
+      "filename": "markupsafe-2.0.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "origin": "rimera-forge",
+      "requires_python": ">=3.6",
+      "sha256": "a5ce948fc8fe49ae3aeae3f7f934e60b27958a76383828a6dcdc4a5cecc8349e",
+      "size": 29051,
+      "tags": [
+        "cp314-cp314-manylinux2014_x86_64",
+        "cp314-cp314-manylinux_2_17_x86_64",
+        "cp314-cp314-manylinux_2_28_x86_64"
+      ],
+      "url": "https://github.com/The-Native-People/Rimera-pkg/releases/download/rimera-markupsafe-a15573d6b2cf/markupsafe-2.0.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl"
+    },
+    {
+      "build_tag": null,
+      "filename": "markupsafe-2.0.1-cp314-cp314-musllinux_1_2_x86_64.whl",
+      "origin": "rimera-forge",
+      "requires_python": ">=3.6",
+      "sha256": "06612ff11f8ca2e2f75aacfa0aad4466a3a914414b21bbf659852f49bf369f66",
+      "size": 28911,
+      "tags": [
+        "cp314-cp314-musllinux_1_2_x86_64"
+      ],
+      "url": "https://github.com/The-Native-People/Rimera-pkg/releases/download/rimera-markupsafe-a15573d6b2cf/markupsafe-2.0.1-cp314-cp314-musllinux_1_2_x86_64.whl"
+    },
+    {
+      "build_tag": null,
       "filename": "markupsafe-2.0.1-cp314-cp314-win_amd64.whl",
       "origin": "rimera-forge",
       "requires_python": ">=3.6",
