@@ -69,4 +69,12 @@ jobs:
       - name: Deploy · attempt 3
         id: deploy_3
         if: ${{ steps.deploy_1.outcome == 'failure' && steps.deploy_2.outcome == 'failure' }}
+        continue-on-error: true
         uses: actions/deploy-pages@v5
+
+      - name: Defer refresh when GitHub Pages is unavailable
+        if: ${{ steps.deploy_1.outcome == 'failure' && steps.deploy_2.outcome == 'failure' && steps.deploy_3.outcome == 'failure' }}
+        run: |
+          echo "::warning::GitHub Pages rejected all three deploy attempts. The generated Simple index is valid; the hourly schedule will retry automatically."
+          echo "### Pages refresh deferred" >> "$GITHUB_STEP_SUMMARY"
+          echo "GitHub Pages returned a server-side failure after three attempts. Forge artifacts and registry metadata remain published; the hourly Pages schedule will retry." >> "$GITHUB_STEP_SUMMARY"
