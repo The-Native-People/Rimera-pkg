@@ -1,0 +1,34 @@
+{
+  "package": {
+    "name": "MarkupSafe",
+    "normalized": "markupsafe"
+  },
+  "release_tag": "rimera-markupsafe-a15573d6b2cf",
+  "schema": 1,
+  "source": {
+    "filename": "MarkupSafe-2.0.1.tar.gz",
+    "requires_python": ">=3.6",
+    "sha256": "594c67807fb16238b30c44bdf74f36c02cdf22d1c8cda91ef8a0ed8dabf5620a",
+    "size": 18596,
+    "upload_time": "2021-05-18T17:18:22.856620Z",
+    "url": "https://files.pythonhosted.org/packages/bf/10/ff66fea6d1788c458663a84d88787bae15d45daa16f6b3ef33322a51fc7e/MarkupSafe-2.0.1.tar.gz",
+    "yanked": false,
+    "yanked_reason": null
+  },
+  "upstream_wheel_count": 68,
+  "version": "2.0.1",
+  "wheels": [
+    {
+      "build_tag": null,
+      "filename": "markupsafe-2.0.1-cp314-cp314-macosx_11_0_arm64.whl",
+      "origin": "rimera-forge",
+      "requires_python": ">=3.6",
+      "sha256": "ebc0c0e2624b2d550bbf6859cacf1c303a0863febe650081c2081734e1c00c6e",
+      "size": 14692,
+      "tags": [
+        "cp314-cp314-macosx_11_0_arm64"
+      ],
+      "url": "https://github.com/The-Native-People/Rimera-pkg/releases/download/rimera-markupsafe-a15573d6b2cf/markupsafe-2.0.1-cp314-cp314-macosx_11_0_arm64.whl"
+    }
+  ]
+}
