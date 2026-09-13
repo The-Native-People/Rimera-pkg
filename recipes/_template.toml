@@ -1,0 +1,11 @@
+# Copy this file to <normalized-package-name>.toml only when a package cannot
+# build with the generic Forge path.
+
+[build]
+before-build = ""
+test-command = ""
+environment = ""
+skip = ""
+
+# [platform.macos-arm64]
+# before-build = "brew install example-library"

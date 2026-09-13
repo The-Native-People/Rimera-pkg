@@ -1,0 +1,184 @@
+name: Forge wheel
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: PyPI project name
+        required: true
+        type: string
+      version:
+        description: Exact version; blank resolves the current PyPI release once
+        required: false
+        type: string
+      python:
+        description: CPython version
+        required: true
+        default: "3.13"
+        type: string
+      target:
+        description: Build target
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - linux-x86_64
+          - linux-arm64
+          - macos-arm64
+          - windows-x86_64
+
+concurrency:
+  group: forge-${{ inputs.package }}-${{ inputs.version || 'latest' }}-${{ inputs.python }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    name: Resolve exact PyPI release
+    runs-on: ubuntu-slim
+    permissions:
+      contents: read
+    outputs:
+      resolved_version: ${{ steps.plan.outputs.resolved_version }}
+      normalized_name: ${{ steps.plan.outputs.normalized_name }}
+      python_selector: ${{ steps.plan.outputs.python_selector }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e .
+      - name: Resolve release and target matrix
+        id: plan
+        shell: bash
+        env:
+          INPUT_PACKAGE: ${{ inputs.package }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_PYTHON: ${{ inputs.python }}
+          INPUT_TARGET: ${{ inputs.target }}
+        run: |
+          args=("$INPUT_PACKAGE" --python "$INPUT_PYTHON" --target "$INPUT_TARGET" --output .rimera/plan.json --github-output "$GITHUB_OUTPUT")
+          if [[ -n "$INPUT_VERSION" ]]; then
+            args+=(--version "$INPUT_VERSION")
+          fi
+          python -m rimera_forge resolve "${args[@]}"
+      - name: Show immutable build input
+        run: cat .rimera/plan.json
+
+  build:
+    name: Build ${{ matrix.target }}
+    needs: plan
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e .
+      - name: Download and verify exact PyPI sdist
+        id: prepare
+        shell: bash
+        run: >-
+          python -m rimera_forge prepare "${{ needs.plan.outputs.normalized_name }}"
+          --version "${{ needs.plan.outputs.resolved_version }}"
+          --target "${{ matrix.target }}"
+          --out .rimera/input
+          --github-output "$GITHUB_OUTPUT"
+
+      # Everything below this point is treated as executing untrusted package code.
+      # This job is read-only and checkout did not persist a credential.
+      - name: Build wheel with cibuildwheel
+        uses: pypa/cibuildwheel@v4.2.1
+        env:
+          CIBW_BUILD: "${{ needs.plan.outputs.python_selector }}-*"
+          CIBW_ARCHS: "${{ matrix.arch }}"
+          CIBW_BEFORE_BUILD: "${{ steps.prepare.outputs.before_build }}"
+          CIBW_TEST_COMMAND: "${{ steps.prepare.outputs.test_command }}"
+          CIBW_ENVIRONMENT: "${{ steps.prepare.outputs.environment }}"
+          CIBW_SKIP: "${{ steps.prepare.outputs.skip }}"
+        with:
+          package-dir: "${{ steps.prepare.outputs.sdist_path }}"
+          output-dir: wheelhouse
+
+      - name: Upload untrusted build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: forge-${{ matrix.target }}
+          path: wheelhouse/*.whl
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Validate, attest, and publish
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      # Fresh trusted checkout: package code from the previous job never runs here.
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e .
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: forge-*
+          path: incoming
+          merge-multiple: false
+      - name: Independently validate wheel metadata and hashes
+        id: publication
+        shell: bash
+        run: >-
+          python -m rimera_forge publish "${{ needs.plan.outputs.normalized_name }}"
+          --version "${{ needs.plan.outputs.resolved_version }}"
+          --wheels-root incoming
+          --out publication
+          --registry registry
+          --repository "$GITHUB_REPOSITORY"
+          --github-output "$GITHUB_OUTPUT"
+      - name: Create GitHub provenance attestations
+        uses: actions/attest@v4
+        with:
+          subject-path: publication/wheels/*.whl
+      - name: Create or update wheel release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.publication.outputs.release_tag }}
+          PACKAGE: ${{ needs.plan.outputs.normalized_name }}
+          VERSION: ${{ needs.plan.outputs.resolved_version }}
+        shell: bash
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "$PACKAGE $VERSION · Rimera Forge" --notes-file publication/release-notes.md
+          else
+            gh release create "$TAG" --title "$PACKAGE $VERSION · Rimera Forge" --notes-file publication/release-notes.md
+          fi
+          gh release upload "$TAG" publication/wheels/*.whl publication/release-manifest.json --clobber
+      - name: Commit small registry record
+        shell: bash
+        run: |
+          git config user.name "rimera-forge[bot]"
+          git config user.email "rimera-forge[bot]@users.noreply.github.com"
+          git add registry
+          if git diff --cached --quiet; then
+            echo "Registry already up to date"
+          else
+            git commit -m "registry: ${{ needs.plan.outputs.normalized_name }} ${{ needs.plan.outputs.resolved_version }}"
+            git push
+          fi

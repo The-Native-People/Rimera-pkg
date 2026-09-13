@@ -1,0 +1,19 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rimera-forge"
+version = "0.1.0"
+description = "Build missing Python wheels once, verify them, and reuse them through Rimera."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "packaging>=24.2",
+]
+
+[project.scripts]
+rimera-forge = "rimera_forge.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rimera_forge"]
