@@ -103,7 +103,7 @@ jobs:
       # Everything below this point is treated as executing untrusted package code.
       # This job is read-only and checkout did not persist a credential.
       - name: Build wheel with cibuildwheel
-        uses: pypa/cibuildwheel@v4.2.1
+        uses: pypa/cibuildwheel@v4.3.5
         env:
           CIBW_BUILD: "${{ needs.plan.outputs.python_selector }}-*"
           CIBW_ARCHS: "${{ matrix.arch }}"
